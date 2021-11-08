@@ -1,4 +1,6 @@
 from tkinter import *
+from tkinter import filedialog as fd
+from matplotlib import image
 
 from PIL import Image, ImageTk
 from skimage import data
@@ -13,8 +15,42 @@ class GUI:
     self.frame.pack()
 
     self.show_main_image(data.rocket())
+  
+  #comandos a serem implementados
+  def semComando(self):
+    print("")
+
+  def clean(self):
+    for child in self.frame.winfo_children():
+      child.destroy()
+
+  def select_image(self):
+    filetypes=[
+            ('image files', ('.tiff', '.jpeg'))
+        ]
+
+    filename =  fd.askopenfile(
+        title='Open a image',
+        initialdir='/',
+        filetypes=filetypes)
+    
+    img = image.imread(filename.name)
+    self.clean()
+    self.show_main_image(img)
+
+  def menu (self, app):
+    menuBar = Menu(app)
+    menuImage=Menu(menuBar, tearoff=0)
+    menuImage.add_command(label="Novo", command=self.select_image)
+    menuImage.add_command(label="Salvar", command=self.semComando)
+    menuImage.add_separator()
+    menuImage.add_command(label="Fechar Arquivo", command=app.quit)
+    menuBar.add_cascade(label="Arquivo", menu=menuImage)
+
+    app.config(menu=menuBar)
 
   def show_main_image (self, array_img):
+    self.menu(self.master)
     image = Image.fromarray(array_img)
     width, height = (float(image.size[0]), float(image.size[1]))
 
@@ -37,13 +73,10 @@ class GUI:
       anchor="center",
       image=self.master.parsed_image
     )
-
-
 class Window:
   def __init__ (self):
     self.gui = Tk(className="Processamento de Imagens")
     self.gui.geometry("1024x768")
-
     GUI(self.gui)
 
   def run (self):
