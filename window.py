@@ -19,13 +19,16 @@ class GUI:
     self.frame.pack()
 
     self.createMenu(self.master)
-    self.show_main_image(data.rocket())
+
+    self.snapshots = list()
+    self.update_main_image(data.rocket())
   
   def save(self):
     #TODO: SALVAR ARQUIVO
     pass
 
   def clean(self):
+    self.snapshots = list()
     for child in self.frame.winfo_children():
       child.destroy()
 
@@ -43,10 +46,19 @@ class GUI:
     img = image.imread(filename.name)
 
     self.clean()
-    self.show_main_image(img)
+    self.update_main_image(img)
 
   def run_function (self, fn, params, image):
     return img_as_ubyte(fn["function"](img_as_float(image), params))
+
+  def update_main_image (self, image):
+    self.snapshots.append(image)
+    self.show_main_image(image)
+
+  def undo (self):
+    if (len(self.snapshots) > 1):
+      self.snapshots.pop()
+      self.show_main_image(self.snapshots[len(self.snapshots) - 1])
 
   def apply_slider_params_function (self, fn, start, end):
     slider_window = Toplevel(self.master, width=250, height=75)
@@ -67,7 +79,7 @@ class GUI:
     )).place(relx=0.45, rely=0.6)
 
     Button(slider_window, text="OK", command=lambda:(
-      self.show_main_image(self.run_function(fn, [int(slider.get())], original_image)),
+      self.update_main_image(self.run_function(fn, [int(slider.get())], original_image)),
       slider_window.destroy()
     )).place(relx=0.8, rely=0.6)
 
@@ -82,6 +94,7 @@ class GUI:
     menuBar.add_cascade(label="Arquivo", menu=menuImage)
 
     menuEditar = Menu(menuBar, tearoff=0)
+    menuEditar.add_command(label="Desfazer", command=self.undo)
     menuEditar.add_command(label="Rotação", command=lambda: self.apply_slider_params_function(Rotate, 0, 360))
 
     menuDesfoque = Menu(menuImage, tearoff=0)
