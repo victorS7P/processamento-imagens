@@ -1,12 +1,14 @@
 from tkinter import *
 from tkinter import filedialog as fd
 from matplotlib import image
+from copy import deepcopy
 
 from PIL import Image, ImageTk
 from skimage import data, img_as_ubyte, img_as_float
 
-from functions import Pixelate, Rotate, Blur
-from copy import deepcopy
+from functions.aula02 import Pixelate, Rotate, Blur
+from functions.aula04 import NoiseClean, Noise, Sharpness
+from utils import keep_float_range
 
 IMAGE_WIDTH = 750
 
@@ -49,7 +51,8 @@ class GUI:
     self.update_main_image(img)
 
   def run_function (self, fn, params, image):
-    return img_as_ubyte(fn["function"](img_as_float(image), params))
+    new_image = fn["function"](img_as_float(image), params)
+    return keep_float_range(new_image)
 
   def update_main_image (self, image):
     self.snapshots.append(image)
@@ -95,21 +98,29 @@ class GUI:
 
     menuEditar = Menu(menuBar, tearoff=0)
     menuEditar.add_command(label="Desfazer", command=self.undo)
+    menuEditar.add_separator()
+
     menuEditar.add_command(label="Rotação", command=lambda: self.apply_slider_params_function(Rotate, 0, 360))
 
     menuDesfoque = Menu(menuImage, tearoff=0)
     menuDesfoque.add_command(label="Gaussiano", command=lambda: self.apply_slider_params_function(Blur, 0, 100))
     menuDesfoque.add_command(label="Pixel", command=lambda: self.apply_slider_params_function(Pixelate, 0, 100))
-
     menuEditar.add_cascade(label="Desfoque", menu=menuDesfoque)
-    menuBar.add_cascade(label="Editar", menu=menuEditar)
 
+    menuEditar.add_command(label="Nitidez", command=lambda: self.apply_slider_params_function(Sharpness, 0, 10))
+
+    menuRuido = Menu(menuImage, tearoff=0)
+    menuRuido.add_command(label="Adicionar", command=lambda: self.apply_slider_params_function(Noise, 0, 100))
+    menuRuido.add_command(label="Remover", command=lambda: self.apply_slider_params_function(NoiseClean, 0, 100))
+    menuEditar.add_cascade(label="Ruído", menu=menuRuido)
+
+    menuBar.add_cascade(label="Editar", menu=menuEditar)
     app.config(menu=menuBar)
 
   def show_main_image (self, array_img):
-    self.main_image_array = array_img
+    self.main_image_array = img_as_ubyte(array_img)
 
-    image = Image.fromarray(array_img)
+    image = Image.fromarray(img_as_ubyte(array_img))
     width, height = (float(image.size[0]), float(image.size[1]))
 
     width_percet = float(IMAGE_WIDTH / width)
