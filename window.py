@@ -4,6 +4,7 @@ from matplotlib import image
 from copy import deepcopy
 
 from PIL import Image, ImageTk
+from functions.aula06 import FFT, Canny
 from skimage import data, img_as_ubyte, img_as_float
 
 from functions.aula02 import Pixelate, Rotate, Blur
@@ -63,6 +64,12 @@ class GUI:
       self.snapshots.pop()
       self.show_main_image(self.snapshots[len(self.snapshots) - 1])
 
+  def undo_all (self):
+    if (len(self.snapshots)):
+      old_image = self.snapshots[0]
+      self.clean()
+      self.update_main_image(old_image)
+
   def apply_slider_params_function (self, fn, start, end):
     slider_window = Toplevel(self.master, width=250, height=75)
     slider_window.title(fn["name"])
@@ -98,6 +105,7 @@ class GUI:
 
     menuEditar = Menu(menuBar, tearoff=0)
     menuEditar.add_command(label="Desfazer", command=self.undo)
+    menuEditar.add_command(label="Desfazer Tudo", command=self.undo_all)
     menuEditar.add_separator()
 
     menuEditar.add_command(label="Rotação", command=lambda: self.apply_slider_params_function(Rotate, 0, 360))
@@ -113,6 +121,11 @@ class GUI:
     menuRuido.add_command(label="Adicionar", command=lambda: self.apply_slider_params_function(Noise, 0, 100))
     menuRuido.add_command(label="Remover", command=lambda: self.apply_slider_params_function(NoiseClean, 0, 100))
     menuEditar.add_cascade(label="Ruído", menu=menuRuido)
+
+    menuBordas = Menu(menuImage, tearoff=0)
+    menuBordas.add_command(label="Canny", command=lambda: self.apply_slider_params_function(Canny, 0, 10))
+    menuBordas.add_command(label="FFT", command=lambda: self.apply_slider_params_function(FFT, 0, 100))
+    menuEditar.add_cascade(label="Bordas", menu=menuBordas)
 
     menuBar.add_cascade(label="Editar", menu=menuEditar)
     app.config(menu=menuBar)
