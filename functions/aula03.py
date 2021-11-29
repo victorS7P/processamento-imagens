@@ -10,6 +10,19 @@ def histogram (image):
     for j in range(image.shape[1]):
       hist[image[i][j]] += 1
   return hist
+
+def plot_histogram(image):
+  if len(image.shape) == 3:
+    red = image[:,:,0]
+    green = image[:,:,1]
+    blue = image[:,:,2]
+    
+    histR = histogram(red)
+    histG = histogram(green)
+    histB = histogram(blue)
+    return histR, histG, histB
+  else:
+    return histogram(image), 0, 0
   
 def exposure_function(image):
   img = select_image()

@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 
 from functions.aula02 import Pixelate, Rotate, Blur
 from functions.aula04 import NoiseClean, Noise, Sharpness
-from functions.aula03 import exposure_function, histogram
+from functions.aula03 import exposure_function, plot_histogram
 from functions.aula05 import Segmentation, automatic_segmentation
 from utils import keep_float_range, select_image
 
@@ -178,11 +178,13 @@ class GUI:
     fig = Figure(figsize = (4, 3),
                 dpi = 100)
     
-    hist = histogram(self.main_image_array)
+    hr,hg,hb = plot_histogram(self.main_image_array)
     plot1 = fig.add_subplot(111)
     plot1.spines['top'].set_visible(False)
     plot1.spines['right'].set_visible(False)
-    plot1.plot(hist)
+    plot1.plot(hr, color = 'r')
+    plot1.plot(hg, color = 'g')
+    plot1.plot(hb, color = 'b')
     plot1.set_facecolor("None")
 
     image = Image.fromarray(img_as_ubyte(array_img))
