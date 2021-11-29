@@ -7,10 +7,13 @@ import cv2
 from PIL import Image, ImageTk
 from functions.aula06 import FFT, Canny
 from skimage import data, img_as_ubyte, img_as_float
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, 
+NavigationToolbar2Tk)
+from matplotlib.figure import Figure
 
 from functions.aula02 import Pixelate, Rotate, Blur
 from functions.aula04 import NoiseClean, Noise, Sharpness
-from functions.aula03 import plot_histogram, exposure_function
+from functions.aula03 import exposure_function, histogram
 from functions.aula05 import Segmentation, automatic_segmentation
 from utils import keep_float_range, select_image
 
@@ -19,16 +22,16 @@ IMAGE_WIDTH = 750
 class GUI:
   def __init__ (self, master=None):
     self.master = master
+    self.master.configure(background='white')
 
-    self.frame = Frame(master)
-    self.frame.config(height=768, width=1024)
-    self.frame.pack()
+    self.frame = Frame(master, borderwidth=1, relief="solid")
+    self.frameG = Frame(master, borderwidth=1, relief="flat" )
 
     self.createMenu(self.master)
 
     self.array_draw = list() 
     self.snapshots = list()
-    self.update_main_image(data.page())
+    self.update_main_image(data.camera())
     
   def save(self):
     #TODO: SALVAR ARQUIVO
@@ -44,17 +47,20 @@ class GUI:
     self.array_draw.clear() 
     self.update_main_image(self.main_image_array)
 
-  def clean(self):
-    self.snapshots = list()
+  def clean(self, all):
+    if all == True:
+      self.snapshots = list()
+      self.array_draw = list()
     for child in self.frame.winfo_children():
+      child.destroy()
+    for child in self.frameG.winfo_children():
       child.destroy()
     
   def load_image(self):
     img = select_image()
-    self.clean()
+    self.clean(True)
     self.update_main_image(img)
     
-
   def run_function (self, fn, params, image):
     new_image = fn["function"](img_as_float(image), params)
     return keep_float_range(new_image)
@@ -67,11 +73,12 @@ class GUI:
     if (len(self.snapshots) > 1):
       self.snapshots.pop()
       self.show_main_image(self.snapshots[len(self.snapshots) - 1])
+      self.array_draw = list()
 
   def undo_all (self):
     if (len(self.snapshots)):
       old_image = self.snapshots[0]
-      self.clean()
+      self.clean(True)
       self.update_main_image(old_image)
 
   def apply_slider_params_function (self, fn, start, end):
@@ -148,7 +155,6 @@ class GUI:
     menuBordas.add_command(label="FFT", command=lambda: self.apply_slider_params_function(FFT, 0, 100))
     menuEditar.add_cascade(label="Bordas", menu=menuBordas)
     
-    menuEditar.add_command(label="Histograma",command=lambda: plot_histogram(self.main_image_array))
     menuEditar.add_command(label="Exposure",command=lambda: self.update_main_image(exposure_function(self.main_image_array)))
     menuDesenhar = Menu(menuImage, tearoff=0)
     menuDesenhar.add_command(label="Cores", command=self.select_color)
@@ -166,14 +172,40 @@ class GUI:
     app.config(menu=menuBar)
 
   def show_main_image (self, array_img):
+    self.clean(False)
     self.main_image_array = img_as_ubyte(array_img)
+    
+    fig = Figure(figsize = (4, 3),
+                dpi = 100)
+    
+    hist = histogram(self.main_image_array)
+    plot1 = fig.add_subplot(111)
+    plot1.spines['top'].set_visible(False)
+    plot1.spines['right'].set_visible(False)
+    plot1.plot(hist)
+    plot1.set_facecolor("None")
 
     image = Image.fromarray(img_as_ubyte(array_img))
     width, height = (float(image.size[0]), float(image.size[1]))
 
     width_percet = float(IMAGE_WIDTH / width)
     height_size = int(height*width_percet)
-
+    
+    self.frameG.config(height=3, width=3)
+    self.frameG.grid(row=0,column=1,padx=10, pady=5)
+  
+    self.frame.config(height=height_size, width=IMAGE_WIDTH)
+    self.frame.grid(row=0,column=0,padx=10, pady=5)
+    
+    self.canvas = FigureCanvasTkAgg(fig,
+                            master = self.frameG) 
+    
+    toolbar = NavigationToolbar2Tk(self.canvas,
+                                   self.frameG)
+    toolbar.update()
+    
+    self.canvas.get_tk_widget().pack(side='right',anchor='e',expand=True,fill='both')
+    
     self.resized = image.resize((IMAGE_WIDTH, height_size), Image.ANTIALIAS)
     self.master.parsed_image = ImageTk.PhotoImage(image=self.resized)
 
@@ -183,7 +215,7 @@ class GUI:
       height=height_size
     )
 
-    self.main_canvas.place(relx=0.5, rely=0.5, anchor=CENTER)
+    self.main_canvas.place(relx=0.5, rely=0.5, anchor="n")
 
     self.main_canvas.create_image(
       IMAGE_WIDTH/2,
@@ -191,6 +223,7 @@ class GUI:
       anchor="center",
       image=self.master.parsed_image
     )
+    self.main_canvas.pack(side='left',anchor='n',expand=True,fill='both')
 
 class Window:
   def __init__ (self):
