@@ -1,4 +1,6 @@
 import numpy as np
+from matplotlib import image
+from tkinter import filedialog as fd
 
 def keep_float_range (image):
   image = np.maximum(image, np.zeros(image.shape))
@@ -10,3 +12,15 @@ def get_height_width (image):
 
 def get_grayscale (image):
   return np.dot(image[..., :3], [0.2989, 0.5870, 0.1140]) if len(image.shape) == 3 else image
+
+def select_image():
+  filetypes=[
+    ('image files', ('.tiff', '.jpeg'))
+  ]
+
+  filename =  fd.askopenfile(
+    title='Open a image',
+    initialdir='/',
+    filetypes=filetypes
+  )
+  return image.imread(filename.name)

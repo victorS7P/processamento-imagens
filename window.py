@@ -1,7 +1,8 @@
 from tkinter import *
-from tkinter import filedialog as fd
-from matplotlib import image
+from tkinter.colorchooser import askcolor
+import numpy as np
 from copy import deepcopy
+import cv2
 
 from PIL import Image, ImageTk
 from functions.aula06 import FFT, Canny
@@ -9,10 +10,12 @@ from skimage import data, img_as_ubyte, img_as_float
 
 from functions.aula02 import Pixelate, Rotate, Blur
 from functions.aula04 import NoiseClean, Noise, Sharpness
-from utils import keep_float_range
+from functions.aula03 import plot_histogram, exposure_function
+from functions.aula05 import Segmentation, automatic_segmentation
+from utils import keep_float_range, select_image
+
 
 IMAGE_WIDTH = 750
-
 class GUI:
   def __init__ (self, master=None):
     self.master = master
@@ -23,33 +26,34 @@ class GUI:
 
     self.createMenu(self.master)
 
+    self.array_draw = list() 
     self.snapshots = list()
-    self.update_main_image(data.rocket())
-  
+    self.update_main_image(data.page())
+    
   def save(self):
     #TODO: SALVAR ARQUIVO
     pass
+  
+  def apply_draw(self):
+    img = deepcopy(np.array(self.resized))
+    for i in self.array_draw:
+      cv2.line(img, (i[0], i[1]),(i[2], i[3]),i[4])
+    self.update_main_image(img)
+    
+  def discard_draw(self):
+    self.array_draw.clear() 
+    self.update_main_image(self.main_image_array)
 
   def clean(self):
     self.snapshots = list()
     for child in self.frame.winfo_children():
       child.destroy()
-
-  def select_image(self):
-    filetypes=[
-      ('image files', ('.tiff', '.jpeg'))
-    ]
-
-    filename =  fd.askopenfile(
-      title='Open a image',
-      initialdir='/',
-      filetypes=filetypes
-    )
     
-    img = image.imread(filename.name)
-
+  def load_image(self):
+    img = select_image()
     self.clean()
     self.update_main_image(img)
+    
 
   def run_function (self, fn, params, image):
     new_image = fn["function"](img_as_float(image), params)
@@ -92,12 +96,29 @@ class GUI:
       self.update_main_image(self.run_function(fn, [int(slider.get())], original_image)),
       slider_window.destroy()
     )).place(relx=0.8, rely=0.6)
+    
+  def get_pos_xy(self,event):
+    global lastx, lasty
+    lastx, lasty = event.x, event.y
 
+  def draw(self,event, color, canvas):
+      global lastx, lasty
+      canvas.create_line((lastx, lasty, event.x, event.y), 
+                  fill=color[1], 
+                  width=1)
+      self.array_draw.append((lastx, lasty, event.x, event.y, color[0]))
+      lastx, lasty = event.x, event.y
+    
+  def select_color(self):
+    colors = askcolor(title = "Cores")
+    self.main_canvas.bind("<Button-1>", self.get_pos_xy)
+    img = self.main_canvas.bind("<B1-Motion>",lambda event:self.draw(event, colors,self.main_canvas))
+  
   def createMenu (self, app):
     menuBar = Menu(app)
 
     menuImage = Menu(menuBar, tearoff=0)
-    menuImage.add_command(label="Novo", command=self.select_image)
+    menuImage.add_command(label="Novo", command=self.load_image)
     menuImage.add_command(label="Salvar", command=self.save)
     menuImage.add_separator()
     menuImage.add_command(label="Fechar Arquivo", command=app.quit)
@@ -126,7 +147,21 @@ class GUI:
     menuBordas.add_command(label="Canny", command=lambda: self.apply_slider_params_function(Canny, 0, 10))
     menuBordas.add_command(label="FFT", command=lambda: self.apply_slider_params_function(FFT, 0, 100))
     menuEditar.add_cascade(label="Bordas", menu=menuBordas)
-
+    
+    menuEditar.add_command(label="Histograma",command=lambda: plot_histogram(self.main_image_array))
+    menuEditar.add_command(label="Exposure",command=lambda: self.update_main_image(exposure_function(self.main_image_array)))
+    menuDesenhar = Menu(menuImage, tearoff=0)
+    menuDesenhar.add_command(label="Cores", command=self.select_color)
+    menuDesenhar.add_command(label="Aplicar", command=self.apply_draw)
+    menuDesenhar.add_command(label="Descartar", command=self.discard_draw)
+    menuEditar.add_cascade(label="Desenhar", menu=menuDesenhar)
+  
+    menuSegm = Menu(menuImage, tearoff=0)
+    menuSegm.add_command(label="Segmentação", command=lambda: self.apply_slider_params_function(Segmentation, 0 ,100))
+    menuSegm.add_command(label="Limiar Global", command=lambda: self.update_main_image(automatic_segmentation(self.main_image_array, 0)))
+    menuSegm.add_command(label="Limiar Local", command=lambda: self.update_main_image(automatic_segmentation(self.main_image_array, 1)))
+    menuEditar.add_cascade(label="Segmentação", menu=menuSegm)
+    
     menuBar.add_cascade(label="Editar", menu=menuEditar)
     app.config(menu=menuBar)
 
@@ -139,8 +174,8 @@ class GUI:
     width_percet = float(IMAGE_WIDTH / width)
     height_size = int(height*width_percet)
 
-    resized = image.resize((IMAGE_WIDTH, height_size), Image.ANTIALIAS)
-    self.master.parsed_image = ImageTk.PhotoImage(image=resized)
+    self.resized = image.resize((IMAGE_WIDTH, height_size), Image.ANTIALIAS)
+    self.master.parsed_image = ImageTk.PhotoImage(image=self.resized)
 
     self.main_canvas = Canvas(
       self.frame,
