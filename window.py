@@ -7,16 +7,17 @@ import cv2
 from PIL import Image, ImageTk
 from functions.aula06 import FFT, Canny
 from skimage import data, img_as_ubyte, img_as_float
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, 
-NavigationToolbar2Tk)
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
 
 from functions.aula02 import Pixelate, Rotate, Blur
 from functions.aula04 import NoiseClean, Noise, Sharpness
 from functions.aula03 import exposure_function, plot_histogram
 from functions.aula05 import Segmentation, automatic_segmentation
-from utils import keep_float_range, select_image
 
+from functions.steg import StegEncode, StegDecode
+
+from utils import keep_float_range, select_image
 
 IMAGE_WIDTH = 750
 class GUI:
@@ -58,6 +59,7 @@ class GUI:
     
   def load_image(self):
     img = select_image()
+
     self.clean(True)
     self.update_main_image(img)
     
@@ -81,12 +83,18 @@ class GUI:
       self.clean(True)
       self.update_main_image(old_image)
 
+
+  def createSubWindow (self, width, height, name):
+    sub_window = Toplevel(self.master, width=width, height=height)
+    sub_window.title(name)
+    sub_window.resizable(False, False)
+    sub_window.attributes('-topmost', 'true')
+    sub_window.grab_set()
+
+    return sub_window
+
   def apply_slider_params_function (self, fn, start, end):
-    slider_window = Toplevel(self.master, width=250, height=75)
-    slider_window.title(fn["name"])
-    slider_window.resizable(False, False)
-    slider_window.attributes('-topmost', 'true')
-    slider_window.grab_set()
+    slider_window = self.createSubWindow(250, 75, fn["name"])
 
     original_image = deepcopy(self.main_image_array)
     slider = Scale(slider_window, from_=start, to=end, orient=HORIZONTAL, command=lambda x:(
@@ -103,18 +111,44 @@ class GUI:
       self.update_main_image(self.run_function(fn, [int(slider.get())], original_image)),
       slider_window.destroy()
     )).place(relx=0.8, rely=0.6)
+
+  def apply_text_box_params_function (self, fn):
+    string_window = self.createSubWindow(350, 400, fn["name"])
+
+    original_image = deepcopy(self.main_image_array)
+    string = Text(string_window, height=17)
+    string.place(relx=0.5, rely=0.4, relwidth=0.95, anchor=CENTER)
+
+    Button(string_window, text="Cancelar", command=lambda:(
+      self.show_main_image(original_image),
+      string_window.destroy()
+    )).place(relx=0.5, rely=0.9)
+
+    Button(string_window, text="OK", command=lambda:(
+      self.update_main_image(self.run_function(fn, [string.get("1.0", END)], original_image)),
+      string_window.destroy()
+    )).place(relx=0.8, rely=0.9)
+
+  def get_text_function (self, fn):
+    string_window = self.createSubWindow(350, 100, fn["name"])
+
+    value = fn["function"](self.main_image_array)
+    value = value if value else "Não há mensagem codificada!"
+
+    string = Label(string_window, text=value)
+    string.place(relx=0.5, rely=0.5, relwidth=0.8, anchor=CENTER)
     
   def get_pos_xy(self,event):
     global lastx, lasty
     lastx, lasty = event.x, event.y
 
   def draw(self,event, color, canvas):
-      global lastx, lasty
-      canvas.create_line((lastx, lasty, event.x, event.y), 
-                  fill=color[1], 
-                  width=1)
-      self.array_draw.append((lastx, lasty, event.x, event.y, color[0]))
-      lastx, lasty = event.x, event.y
+    global lastx, lasty
+    canvas.create_line((lastx, lasty, event.x, event.y), 
+                fill=color[1], 
+                width=1)
+    self.array_draw.append((lastx, lasty, event.x, event.y, color[0]))
+    lastx, lasty = event.x, event.y
     
   def select_color(self):
     colors = askcolor(title = "Cores")
@@ -125,7 +159,7 @@ class GUI:
     menuBar = Menu(app)
 
     menuImage = Menu(menuBar, tearoff=0)
-    menuImage.add_command(label="Novo", command=self.load_image)
+    menuImage.add_command(label="Abrir", command=self.load_image)
     menuImage.add_command(label="Salvar", command=self.save)
     menuImage.add_separator()
     menuImage.add_command(label="Fechar Arquivo", command=app.quit)
@@ -169,6 +203,12 @@ class GUI:
     menuEditar.add_cascade(label="Segmentação", menu=menuSegm)
     
     menuBar.add_cascade(label="Editar", menu=menuEditar)
+    
+    menuSteg = Menu(menuImage, tearoff=0)
+    menuSteg.add_command(label="Codificar Mensagem", command=lambda: self.apply_text_box_params_function(StegEncode))
+    menuSteg.add_command(label="Decodificar Mensagem", command=lambda: self.get_text_function(StegDecode))
+    menuBar.add_cascade(label="Esteganografia", menu=menuSteg)
+
     app.config(menu=menuBar)
 
   def show_main_image (self, array_img):
@@ -179,6 +219,7 @@ class GUI:
                 dpi = 100)
     
     hr,hg,hb = plot_histogram(self.main_image_array)
+
     plot1 = fig.add_subplot(111)
     plot1.spines['top'].set_visible(False)
     plot1.spines['right'].set_visible(False)

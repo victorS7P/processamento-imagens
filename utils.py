@@ -15,12 +15,13 @@ def get_grayscale (image):
 
 def select_image():
   filetypes=[
-    ('image files', ('.tiff', '.jpeg'))
+    ('image files', ('.tiff', '.jpeg', '.png'))
   ]
 
   filename =  fd.askopenfile(
     title='Open a image',
-    initialdir='/',
+    initialdir='~/Pictures',
     filetypes=filetypes
   )
+  
   return image.imread(filename.name)
