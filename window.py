@@ -11,10 +11,11 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
 NavigationToolbar2Tk)
 from matplotlib.figure import Figure
 
+from functions.aula11 import texture_segmentation
 from functions.aula02 import Pixelate, Rotate, Blur
 from functions.aula04 import NoiseClean, Noise, Sharpness
 from functions.aula03 import exposure_function, plot_histogram
-from functions.aula05 import Segmentation, automatic_segmentation
+from functions.aula05 import Segmentation, automatic_segmentation, roberts, gx, gy
 from utils import keep_float_range, select_image
 
 
@@ -153,6 +154,9 @@ class GUI:
     menuBordas = Menu(menuImage, tearoff=0)
     menuBordas.add_command(label="Canny", command=lambda: self.apply_slider_params_function(Canny, 0, 10))
     menuBordas.add_command(label="FFT", command=lambda: self.apply_slider_params_function(FFT, 0, 100))
+    menuBordas.add_command(label="Roberts",command=lambda: self.update_main_image(roberts(self.main_image_array)))
+    menuBordas.add_command(label="Gx",command=lambda: self.update_main_image(gx(self.main_image_array)/255))
+    menuBordas.add_command(label="Gy",command=lambda: self.update_main_image(gy(self.main_image_array)/255))
     menuEditar.add_cascade(label="Bordas", menu=menuBordas)
     
     menuEditar.add_command(label="Exposure",command=lambda: self.update_main_image(exposure_function(self.main_image_array)))
@@ -166,6 +170,7 @@ class GUI:
     menuSegm.add_command(label="Segmentação", command=lambda: self.apply_slider_params_function(Segmentation, 0 ,100))
     menuSegm.add_command(label="Limiar Global", command=lambda: self.update_main_image(automatic_segmentation(self.main_image_array, 0)))
     menuSegm.add_command(label="Limiar Local", command=lambda: self.update_main_image(automatic_segmentation(self.main_image_array, 1)))
+    menuSegm.add_command(label="Segmentação Textura", command=lambda: self.update_main_image(texture_segmentation(self.main_image_array)))
     menuEditar.add_cascade(label="Segmentação", menu=menuSegm)
     
     menuBar.add_cascade(label="Editar", menu=menuEditar)
