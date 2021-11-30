@@ -28,10 +28,10 @@ class GUI:
     self.master.configure(background='white')
 
     self.frame = Frame(master, borderwidth=1, relief="solid")
-    self.frameG = Frame(master, borderwidth=1, relief="flat" )
 
     self.createMenu(self.master)
 
+    self.hist = False
     self.array_draw = list() 
     self.snapshots = list()
     self.update_main_image(data.camera())
@@ -56,6 +56,8 @@ class GUI:
       self.array_draw = list()
     for child in self.frame.winfo_children():
       child.destroy()
+      
+  def clean_hist(self):
     for child in self.frameG.winfo_children():
       child.destroy()
     
@@ -161,6 +163,15 @@ class GUI:
     colors = askcolor(title = "Cores")
     self.main_canvas.bind("<Button-1>", self.get_pos_xy)
     img = self.main_canvas.bind("<B1-Motion>",lambda event:self.draw(event, colors,self.main_canvas))
+    
+  def set_hist(self):
+    if not self.hist:
+      self.hist = True
+      self.frameG = Frame(self.master, borderwidth=1, relief="flat" )
+    else:
+      self.hist = False
+      self.frameG.destroy()
+    self.update_main_image(self.main_image_array)
   
   def createMenu (self, app):
     menuBar = Menu(app)
@@ -199,6 +210,7 @@ class GUI:
     menuBordas.add_command(label="Gy",command=lambda: self.update_main_image(gy(self.main_image_array)/255))
     menuEditar.add_cascade(label="Bordas", menu=menuBordas)
     
+    menuEditar.add_command(label="Histograma",command= self.set_hist)
     menuEditar.add_command(label="Exposure",command=lambda: self.update_main_image(exposure_function(self.main_image_array)))
     menuDesenhar = Menu(menuImage, tearoff=0)
     menuDesenhar.add_command(label="Cores", command=self.select_color)
@@ -226,44 +238,47 @@ class GUI:
     menuBar.add_cascade(label="Esteganografia", menu=menuSteg)
 
     app.config(menu=menuBar)
-
-  def show_main_image (self, array_img):
-    self.clean(False)
-    self.main_image_array = img_as_ubyte(array_img)
     
-    fig = Figure(figsize = (4, 3),
+  def show_main_hist(self):
+    if self.hist == True:
+      self.clean_hist()
+      fig = Figure(figsize = (4, 3),
                 dpi = 100)
     
-    hr,hg,hb = plot_histogram(self.main_image_array)
+      hr,hg,hb = plot_histogram(self.main_image_array)
 
-    plot1 = fig.add_subplot(111)
-    plot1.spines['top'].set_visible(False)
-    plot1.spines['right'].set_visible(False)
-    plot1.plot(hr, color = 'r')
-    plot1.plot(hg, color = 'g')
-    plot1.plot(hb, color = 'b')
-    plot1.set_facecolor("None")
+      plot1 = fig.add_subplot(111)
+      plot1.spines['top'].set_visible(False)
+      plot1.spines['right'].set_visible(False)
+      plot1.plot(hr, color = 'r')
+      plot1.plot(hg, color = 'g')
+      plot1.plot(hb, color = 'b')
+      plot1.set_facecolor("None")
+      
+      self.frameG.config(height=3, width=3)
+      self.frameG.grid(row=0,column=1,padx=10, pady=5)
+      
+      self.canvas = FigureCanvasTkAgg(fig,
+                        master = self.frameG) 
+    
+      toolbar = NavigationToolbar2Tk(self.canvas,
+                                    self.frameG)
+      toolbar.update()
+      
+      self.canvas.get_tk_widget().pack(side='right',anchor='e',expand=True,fill='both')
+
+  def show_main_image (self, array_img):
+    
+    self.main_image_array = img_as_ubyte(array_img)
 
     image = Image.fromarray(img_as_ubyte(array_img))
     width, height = (float(image.size[0]), float(image.size[1]))
 
     width_percet = float(IMAGE_WIDTH / width)
     height_size = int(height*width_percet)
-    
-    self.frameG.config(height=3, width=3)
-    self.frameG.grid(row=0,column=1,padx=10, pady=5)
   
     self.frame.config(height=height_size, width=IMAGE_WIDTH)
     self.frame.grid(row=0,column=0,padx=10, pady=5)
-    
-    self.canvas = FigureCanvasTkAgg(fig,
-                            master = self.frameG) 
-    
-    toolbar = NavigationToolbar2Tk(self.canvas,
-                                   self.frameG)
-    toolbar.update()
-    
-    self.canvas.get_tk_widget().pack(side='right',anchor='e',expand=True,fill='both')
     
     self.resized = image.resize((IMAGE_WIDTH, height_size), Image.ANTIALIAS)
     self.master.parsed_image = ImageTk.PhotoImage(image=self.resized)
@@ -274,7 +289,7 @@ class GUI:
       height=height_size
     )
 
-    self.main_canvas.place(relx=0.5, rely=0.5, anchor="n")
+    self.main_canvas.place(relx=0.5, rely=0.5, anchor="center")
 
     self.main_canvas.create_image(
       IMAGE_WIDTH/2,
@@ -282,7 +297,8 @@ class GUI:
       anchor="center",
       image=self.master.parsed_image
     )
-    self.main_canvas.pack(side='left',anchor='n',expand=True,fill='both')
+     
+    self.show_main_hist()
 
 class Window:
   def __init__ (self):
