@@ -5,7 +5,7 @@ from copy import deepcopy
 import cv2
 
 from PIL import Image, ImageTk
-from functions.aula06 import FFT, Canny
+from functions.aula06 import FFT, Canny, HighPass, LowPass
 from skimage import data, img_as_ubyte, img_as_float
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
@@ -94,6 +94,11 @@ class GUI:
     sub_window.grab_set()
 
     return sub_window
+
+  def apply_paramless_function (self, fn):
+    new_image = fn["function"](img_as_float(self.main_image_array))
+    new_image = keep_float_range(new_image)
+    self.update_main_image(new_image)
 
   def apply_slider_params_function (self, fn, start, end):
     slider_window = self.createSubWindow(250, 75, fn["name"])
@@ -200,6 +205,11 @@ class GUI:
     menuDesenhar.add_command(label="Aplicar", command=self.apply_draw)
     menuDesenhar.add_command(label="Descartar", command=self.discard_draw)
     menuEditar.add_cascade(label="Desenhar", menu=menuDesenhar)
+
+    menuPass = Menu(menuImage, tearoff=0)
+    menuPass.add_command(label="Passa Alta", command=lambda: self.apply_paramless_function(HighPass))
+    menuPass.add_command(label="Passa Baixa", command=lambda: self.apply_paramless_function(LowPass))
+    menuEditar.add_cascade(label="Aplicar Filtro", menu=menuPass)
   
     menuSegm = Menu(menuImage, tearoff=0)
     menuSegm.add_command(label="Segmentação", command=lambda: self.apply_slider_params_function(Segmentation, 0 ,100))

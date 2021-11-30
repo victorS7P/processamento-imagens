@@ -1,5 +1,6 @@
 import numpy as np
 from skimage import feature
+from scipy import ndimage
 
 from functions.aula02 import BlurFn
 from utils import get_grayscale, get_height_width
@@ -41,4 +42,30 @@ def FFTFn (image, params):
 FFT = {
   "name": "FFT",
   "function": FFTFn
+}
+
+def HighPassFn (image):
+  kernel = np.array([
+    [-1, -1, -1],
+    [-1,  8, -1],
+    [-1, -1, -1]
+  ])
+
+  return ndimage.convolve(image, kernel)
+HighPass = {
+  "name": "Passa Alta",
+  "function": HighPassFn
+}
+
+def LowPassFn (image):
+  kernel = np.array([
+    [1/9, 1/9, 1/9],
+    [1/9, 1/9, 1/9],
+    [1/9, 1/9, 1/9]
+  ])
+
+  return ndimage.convolve(image, kernel)
+LowPass = {
+  "name": "Passa Baixa",
+  "function": LowPassFn
 }
