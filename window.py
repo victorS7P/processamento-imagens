@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter.colorchooser import askcolor
+from tkinter.filedialog import asksaveasfilename
 import numpy as np
 from copy import deepcopy
 import cv2
@@ -36,9 +37,12 @@ class GUI:
     self.snapshots = list()
     self.update_main_image(data.camera())
     
-  def save(self):
-    #TODO: SALVAR ARQUIVO
-    pass
+  def save_image(self):
+    file = self.image.filename = asksaveasfilename(initialdir = "/",title = "Save as",defaultextension="*.jpg"
+                                                   ,filetypes = (('JPEG', ('*.jpg','*.jpeg','*.jpe','*.jfif'))
+                                                                 ,('PNG', '*.png'),('BMP', ('*.bmp','*.jdib'))))
+    self.image.save(file)
+
   
   def apply_draw(self):
     img = deepcopy(np.array(self.resized))
@@ -178,7 +182,7 @@ class GUI:
 
     menuImage = Menu(menuBar, tearoff=0)
     menuImage.add_command(label="Abrir", command=self.load_image)
-    menuImage.add_command(label="Salvar", command=self.save)
+    menuImage.add_command(label="Salvar", command=self.save_image)
     menuImage.add_separator()
     menuImage.add_command(label="Fechar Arquivo", command=app.quit)
     menuBar.add_cascade(label="Arquivo", menu=menuImage)
@@ -224,7 +228,7 @@ class GUI:
     menuEditar.add_cascade(label="Aplicar Filtro", menu=menuPass)
   
     menuSegm = Menu(menuImage, tearoff=0)
-    menuSegm.add_command(label="Segmentação", command=lambda: self.apply_slider_params_function(Segmentation, 0 ,100))
+    menuSegm.add_command(label="Segmentação", command=lambda: self.apply_slider_params_function(Segmentation, 0 ,255))
     menuSegm.add_command(label="Limiar Global", command=lambda: self.update_main_image(automatic_segmentation(self.main_image_array, 0)))
     menuSegm.add_command(label="Limiar Local", command=lambda: self.update_main_image(automatic_segmentation(self.main_image_array, 1)))
     menuSegm.add_command(label="Segmentação Textura", command=lambda: self.update_main_image(texture_segmentation(self.main_image_array)))
@@ -271,8 +275,8 @@ class GUI:
     
     self.main_image_array = img_as_ubyte(array_img)
 
-    image = Image.fromarray(img_as_ubyte(array_img))
-    width, height = (float(image.size[0]), float(image.size[1]))
+    self.image = Image.fromarray(img_as_ubyte(array_img))
+    width, height = (float(self.image.size[0]), float(self.image.size[1]))
 
     width_percet = float(IMAGE_WIDTH / width)
     height_size = int(height*width_percet)
@@ -280,7 +284,7 @@ class GUI:
     self.frame.config(height=height_size, width=IMAGE_WIDTH)
     self.frame.grid(row=0,column=0,padx=10, pady=5)
     
-    self.resized = image.resize((IMAGE_WIDTH, height_size), Image.ANTIALIAS)
+    self.resized = self.image.resize((IMAGE_WIDTH, height_size), Image.ANTIALIAS)
     self.master.parsed_image = ImageTk.PhotoImage(image=self.resized)
 
     self.main_canvas = Canvas(

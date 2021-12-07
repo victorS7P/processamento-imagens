@@ -5,7 +5,7 @@ from functions.aula02 import BlurFn
 
 def binary_segmentation(image, threshold):
     image_gray = get_grayscale(image)
-    classified = image_gray>threshold[0]/100
+    classified = image_gray>threshold[0]/255
     return classified 
 
 Segmentation = {
