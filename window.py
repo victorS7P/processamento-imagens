@@ -1,6 +1,8 @@
 from tkinter import *
+from tkinter import ttk
 from tkinter.colorchooser import askcolor
 from tkinter.filedialog import asksaveasfilename
+
 import numpy as np
 from copy import deepcopy
 import cv2
@@ -16,11 +18,11 @@ from functions.aula02 import Pixelate, Rotate, Blur
 from functions.aula04 import NoiseClean, Noise, Sharpness
 from functions.aula03 import exposure_function, plot_histogram
 from functions.aula05 import Segmentation, automatic_segmentation, roberts, gx, gy
-from utils import keep_float_range, select_image
+from functions.aula10 import Components, HoughCircles, HoughLines
+from functions.aula12 import PropertiesFn
 
+from utils import keep_float_range, select_image
 from functions.steg import StegEncode, StegDecode
-
-from utils import keep_float_range, select_image
 
 IMAGE_WIDTH = 750
 class GUI:
@@ -35,7 +37,7 @@ class GUI:
     self.hist = False
     self.array_draw = list() 
     self.snapshots = list()
-    self.update_main_image(data.camera())
+    self.update_main_image(data.coins())
     
   def save_image(self):
     file = self.image.filename = asksaveasfilename(initialdir = "/",title = "Save as",defaultextension="*.jpg"
@@ -177,6 +179,39 @@ class GUI:
       self.frameG.destroy()
     self.update_main_image(self.main_image_array)
   
+  def show_properties (self):
+    props = PropertiesFn(self.main_image_array)
+
+    window = self.createSubWindow(768, 800, 'Características')
+    table = ttk.Treeview(window)
+
+    table['columns'] = ('centroid', 'orientation', 'bbox', 'area', 'perimeter')
+
+    table.column("#0", width=0, stretch=NO)
+    table.column("centroid",anchor=CENTER, width=100)
+    table.column("orientation",anchor=CENTER, width=120)
+    table.column("bbox",anchor=CENTER, width=80)
+    table.column("area",anchor=CENTER, width=80)
+    table.column("perimeter",anchor=CENTER, width=100)
+
+    table.heading("#0",text="",anchor=CENTER)
+    table.heading("centroid",text="centroid",anchor=CENTER)
+    table.heading("orientation",text="orientation",anchor=CENTER)
+    table.heading("bbox",text="bbox",anchor=CENTER)
+    table.heading("area",text="area",anchor=CENTER)
+    table.heading("perimeter",text="perimeter",anchor=CENTER)
+
+    iid = 0
+    r = len(props['area'])
+    for x in range(r):
+      table.insert(parent='', index='end', iid=iid, text='', values=(
+        props['centroid-0'][x], props['orientation'][x], props['bbox-0'][x], props['area'][x], props['perimeter'][x]
+      ))
+
+      iid += 1
+
+    table.pack()
+  
   def createMenu (self, app):
     menuBar = Menu(app)
 
@@ -212,9 +247,12 @@ class GUI:
     menuBordas.add_command(label="Roberts",command=lambda: self.update_main_image(roberts(self.main_image_array)))
     menuBordas.add_command(label="Gx",command=lambda: self.update_main_image(gx(self.main_image_array)/255))
     menuBordas.add_command(label="Gy",command=lambda: self.update_main_image(gy(self.main_image_array)/255))
+    menuBordas.add_command(label="Hough (linhas)",command=lambda: self.apply_slider_params_function(HoughLines, 0, 100))
+    menuBordas.add_command(label="Hough (círculos)",command=lambda: self.apply_slider_params_function(HoughCircles, 0, 100))
     menuEditar.add_cascade(label="Bordas", menu=menuBordas)
     
     menuEditar.add_command(label="Histograma",command= self.set_hist)
+
     menuEditar.add_command(label="Exposure",command=lambda: self.update_main_image(exposure_function(self.main_image_array)))
     menuDesenhar = Menu(menuImage, tearoff=0)
     menuDesenhar.add_command(label="Cores", command=self.select_color)
@@ -233,6 +271,9 @@ class GUI:
     menuSegm.add_command(label="Limiar Local", command=lambda: self.update_main_image(automatic_segmentation(self.main_image_array, 1)))
     menuSegm.add_command(label="Segmentação Textura", command=lambda: self.update_main_image(texture_segmentation(self.main_image_array)))
     menuEditar.add_cascade(label="Segmentação", menu=menuSegm)
+
+    menuEditar.add_command(label="Detectar componentes", command=lambda: self.apply_paramless_function(Components))
+    menuEditar.add_command(label="Exibir Características", command=lambda: self.show_properties())
     
     menuBar.add_cascade(label="Editar", menu=menuEditar)
     

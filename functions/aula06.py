@@ -1,4 +1,6 @@
 import numpy as np
+import cv2 as cv
+
 from skimage import feature
 from scipy import ndimage
 
@@ -6,9 +8,9 @@ from functions.aula02 import BlurFn
 from utils import get_grayscale, get_height_width
 
 def CannyFn (image, params):
-  grayscale = get_grayscale(image)
-  blur = BlurFn(grayscale, params)
-  return feature.canny(blur, sigma=params[0]/100)
+  gray = get_grayscale(image)
+  gray = (gray*255).astype(np.uint8)
+  return cv.Canny(gray, params[0] * 10, 80, None, 3)
 Canny = {
   "name": "Canny",
   "function": CannyFn
